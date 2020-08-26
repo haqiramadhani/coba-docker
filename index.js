@@ -12,10 +12,12 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 app.use(log());
-const PORT = 8080;
 
 //Create your webhook here: https://webhook.site/
 const WEBHOOK_ADDRESS = process.env.WEBHOOK_ADDRESS || "https://webhook.site/2489fd1d-4844-4535-86c0-802e01e461db";
+const WA_BROWSER_WS_ENDPOINT = process.env.WA_BROWSER_WS_ENDPOINT;
+const WA_DISABLE_SPINS = process.env.WA_DISABLE_SPINS;
+const PORT = process.env.PORT || 8080;
 
 async function fire(data) {
   return await axios.post(WEBHOOK_ADDRESS, data);
@@ -48,33 +50,38 @@ app.listen(PORT, function () {
 
 const availableSessions = {};
 
-const start = (license, res) =>
-  create(license, {licenseKey: 'INHORID-HEROKUAPP-COM-SULLA'})
-    .then(async (client) => {
-      // storing session
-      availableSessions[license] = client;
-      // FREE listener
-      await client.onAck(hook("ack"));
-      await client.onAddedToGroup(hook("added_to_group"));
-      await client.onAnyMessage(hook("any_message"));
-      await client.onBattery(hook("battery"));
-      // await client.onGlobalParicipantsChanged(hook("participant_change"));
-      await client.onIncomingCall(hook("incoming_call"));
-      await client.onMessage(hook("incoming_message"));
-      await client.onPlugged(hook("charger_state"));
-      await client.onRemovedFromGroup(hook("remove_from_group"));
-      await client.onStateChanged(hook("state_change", client));
-      // INSIDERS listener
-      // await client.onChatOpened(hook("chat_opened"));
-      // await client.onChatState(hook("chat_state"));
-      // await client.onContactAdded(hook("new_contact"));
-      // STORY listener
-      // await client.onStory(hook("new_story"));
-      if (res) res.status(200).json({ message: "successfully" });
-    })
-    .catch((error) => {
-      if (res) res.status(400).json({ message: error.message });
-    });
+const start = (license, res) => {
+  const options = {licenseKey: 'INHORID-HEROKUAPP-COM-SULLA'};
+  if (WA_BROWSER_WS_ENDPOINT) options.browserWSEndpoint = WA_BROWSER_WS_ENDPOINT;
+  if (WA_DISABLE_SPINS) options.disableSpins = WA_DISABLE_SPINS;
+  // options.popup = true;
+  create(license, options)
+  .then(async (client) => {
+    // storing session
+    availableSessions[license] = client;
+    // FREE listener
+    await client.onAck(hook("ack"));
+    await client.onAddedToGroup(hook("added_to_group"));
+    await client.onAnyMessage(hook("any_message"));
+    await client.onBattery(hook("battery"));
+    // await client.onGlobalParicipantsChanged(hook("participant_change"));
+    await client.onIncomingCall(hook("incoming_call"));
+    await client.onMessage(hook("incoming_message"));
+    await client.onPlugged(hook("charger_state"));
+    await client.onRemovedFromGroup(hook("remove_from_group"));
+    await client.onStateChanged(hook("state_change", client));
+    // INSIDERS listener
+    // await client.onChatOpened(hook("chat_opened"));
+    // await client.onChatState(hook("chat_state"));
+    // await client.onContactAdded(hook("new_contact"));
+    // STORY listener
+    // await client.onStory(hook("new_story"));
+    if (res) res.status(200).json({ message: "successfully" });
+  })
+  .catch((error) => {
+    if (res) res.status(400).json({ message: error.message });
+  });
+}
 
 app.all('/', (req, res) => {
   res.status(200).json({message: 'welcome to whatsapp gateway powered by https://jasadigitalin.com'})
